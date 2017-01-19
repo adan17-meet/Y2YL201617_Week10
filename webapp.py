@@ -1,7 +1,7 @@
 from flask import Flask
 from flask import g
 from flask import session as login_session
-from flask import render_template, request
+from flask import render_template, request, flash, url_for, redirect
 from model import *
 
 app = Flask(__name__)
@@ -81,8 +81,7 @@ def addToCart(product_id):
 	product = session.query(Product).filter_by(id = product_id).one()
 	shoppingCart = session.query(ShoppingCart).filter_by(customer_id=login_session['id']).one()
 	if product.name in [item.product.name for item in ShoppingCart.products]:
-			assoc = session.query(ShoppingCartAssociation).filter_by(ShoppingCart=shoppingCart) \
-				.filter_by(product=product).one()
+			assoc = session.query(ShoppingCartAssociation).filter_by(ShoppingCart=shoppingCart).filter_by(product=product).one()
 			assoc.quantity = int(assoc.quantity) + int(quantity)
 			flash("successfully added to Shopping Cart")
 			return redirect(url_for('shoppingCart'))
@@ -96,7 +95,11 @@ def addToCart(product_id):
 
 @app.route("/shoppingCart")
 def shoppingCart():
-	return render_template('shoppingCart.html')
+	if 'id' not in login_session:
+		flash("You must be logged in to perform this action")
+		return redirect(url_for('login'))
+	shoppingCart = session.query(ShoppingCart).filter_by(customer_id=login_session['id']).one()
+	return render_template('shoppingCart.html', shoppingCart= shoppingCart)
 
 @app.route("/removeFromCart/<int:product_id>", methods = ['POST'])
 def removeFromCart(product_id):
